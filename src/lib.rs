@@ -32,12 +32,115 @@ pub fn simplify_double_not() -> Rewrite<Language, ()> {
     rewrite!("simplify-double-not"; "(not (not ?a))" => "?a")
 }
 
+pub fn introduce_double_not() -> Rewrite<Language, ()> {
+    rewrite!("introduce-double-not"; "?a" => "(not (not ?a))")
+}
+
+pub fn distribute_or() -> Rewrite<Language, ()> {
+    rewrite!("distribute-or"; "(or ?a (and ?b ?c))" => "(and (or ?a ?b) (or ?a ?c))")
+}
+
+pub fn reverse_distribute_or() -> Rewrite<Language, ()> {
+    rewrite!("reverse-distribute-or"; "(and (or ?a ?b) (or ?a ?c))" => "(or ?a (and ?b ?c))")
+}
+
+pub fn distribute_and() -> Rewrite<Language, ()> {
+    rewrite!("distribute-and"; "(and ?a (or ?b ?c))" => "(or (and ?a ?b) (and ?a ?c))")
+}
+
+pub fn reverse_distribute_and() -> Rewrite<Language, ()> {
+    rewrite!("reverse-distribute-and"; "(or (and ?a ?b) (and ?a ?c))" => "(and ?a (or ?b ?c))")
+}
+
+pub fn commute_or() -> Rewrite<Language, ()> {
+    rewrite!("commute-or"; "(or ?a ?b)" => "(or ?b ?a)")
+}
+
+pub fn commute_and() -> Rewrite<Language, ()> {
+    rewrite!("commute-and"; "(and ?a ?b)" => "(and ?b ?a)")
+}
+
+pub fn absorb_and() -> Rewrite<Language, ()> {
+    rewrite!("absorb-and"; "(and ?a (or ?a ?b))" => "?a")
+}
+
+pub fn absorb_or() -> Rewrite<Language, ()> {
+    rewrite!("absorb-or"; "(or ?a (and ?a ?b))" => "?a")
+}
+
+pub fn associate_or() -> Rewrite<Language, ()> {
+    rewrite!("associate-or"; "(or ?a (or ?b ?c))" => "(or (or ?a ?b) ?c)")
+}
+
+pub fn reverse_associate_or() -> Rewrite<Language, ()> {
+    rewrite!("reverse-associate-or"; "(or (or ?a ?b) ?c)" => "(or ?a (or ?b ?c))")
+}
+
+pub fn associate_and() -> Rewrite<Language, ()> {
+    rewrite!("associate-and"; "(and ?a (and ?b ?c))" => "(and (and ?a ?b) ?c)")
+}
+
+// VVV TODO  WAS WRITING HERE WHEN MY BATTERY DIED
+
+pub fn reverse_associate_and() -> Rewrite<Language, ()> {
+    rewrite!("reverse-associate-and"; "(and (and ?a ?b) ?c)" => "(and ?a (and ?b ?c))")
+}
+
+// ^^^ TODO  WAS WRITING HERE WHEN MY BATTERY DIED
+
 #[cfg(test)]
 mod tests {
 
     use egg::{CostFunction, EGraph, Runner};
 
     use super::*;
+
+    /// This test tests the feasibility of running a large set of rewrites to
+    /// saturation on a small expression.
+    #[test]
+    #[ignore = "can't saturate with these rewrites"]
+    fn run_all_rewrites_to_saturation_0x87() {
+        let mut expr = RecExpr::default();
+        let a_id = expr.add(Language::Symbol(Symbol::from("A")));
+        let b_id = expr.add(Language::Symbol(Symbol::from("B")));
+        let c_id = expr.add(Language::Symbol(Symbol::from("C")));
+        let not_a_id = expr.add(Language::Not([a_id]));
+        let not_b_id = expr.add(Language::Not([b_id]));
+        let not_c_id = expr.add(Language::Not([c_id]));
+        let g1_id = expr.add(Language::And([not_a_id, not_b_id]));
+        let not_g1_id = expr.add(Language::Not([g1_id]));
+        let g2_id = expr.add(Language::And([not_g1_id, not_c_id]));
+        let not_g2_id = expr.add(Language::Not([g2_id]));
+        let g3_id = expr.add(Language::And([not_g1_id, not_g2_id]));
+        let g4_id = expr.add(Language::And([not_g2_id, not_c_id]));
+        let _x_id = expr.add(Language::Or([g3_id, g4_id]));
+
+        let mut egraph = EGraph::new(());
+        let _x_id_in_egraph = egraph.add_expr(&expr);
+
+        let runner = Runner::<_, _, ()>::new(()).with_egraph(egraph).run(&vec![
+            demorgans_and(),
+            demorgans_or(),
+            simplify_double_not(),
+            introduce_double_not(),
+            associate_and(),
+            associate_or(),
+            distribute_and(),
+            reverse_distribute_and(),
+            distribute_or(),
+            reverse_distribute_or(),
+            absorb_and(),
+            absorb_or(),
+            commute_and(),
+            commute_or(),
+        ]);
+
+        runner.print_report();
+        assert!(match runner.stop_reason {
+            Some(egg::StopReason::Saturated) => true,
+            _ => false,
+        });
+    }
 
     /// Tests whether DeMorgan rewrites successfully push the Nots to the leaves
     /// of the program.
