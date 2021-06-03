@@ -1087,8 +1087,11 @@ mod tests {
     #[test]
     fn lower_0x87() {
         let expr = get_0x87();
+        println!("{}", expr.pretty(40));
         let expr = push_nots_to_leaves(expr);
-        println!("{}", lower(expr).pretty(80));
+        println!("{}", expr.pretty(40));
+        let expr = lower(expr);
+        println!("{}", expr.pretty(40));
     }
 
     /// This test compares two versions of the same program to make sure they're
