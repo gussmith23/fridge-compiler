@@ -15,4 +15,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: docker build -t fridge-compiler .
-      - run: docker run -it fridge-compiler cargo test
+      - run: docker run fridge-compiler cargo test
